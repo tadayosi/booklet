@@ -1,0 +1,42 @@
+#!/usr/bin/env ruby
+
+$LOAD_PATH << File.expand_path(File.dirname(__FILE__) + '/../lib')
+require 'rubygems'
+require 'optparse'
+require 'booklet'
+
+include Booklet
+
+if ARGV.length < 1
+  puts "Need a path to PDF."
+  puts "Usage: #{File.basename(__FILE__)} <path/to/pdf>"
+  exit 1
+end
+
+src = ARGV[0]
+tmp = "out/__temp__.pdf"
+out = "out/booklet-#{File.basename(src, ".pdf")}.pdf"
+blank = File.dirname(__FILE__) + "/../blank.pdf"
+
+begin
+  puts "PDFtk version: " + `pdftk --version`.split.at(1)
+rescue => e
+  puts "Install pdftk. -- #{e}"
+  exit 1
+end
+
+p = pages(src)
+n = (4 - p % 4) % 4
+puts "#{src}: #{p} pages"
+
+if !Dir.exists? "out"
+  run("mkdir out")
+end
+
+cmd1 = (1..n).to_a.reduce("pdftk #{src}") { |cmd, i| cmd + " #{blank}" } + " cat output #{tmp}"
+run(cmd1)
+
+cmd2 = "pdftk #{tmp} cat #{quire_all(p + n)} output #{out}"
+run(cmd2)
+
+run("rm #{tmp}")
